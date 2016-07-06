@@ -39,6 +39,10 @@ type client struct {
 	dialer     func() (net.Conn, error)
 }
 
+type responseError struct {
+	Error *json.RawMessage `json:"error"`
+}
+
 func New(conn string) (Client, error) {
 	c := &client{
 		HttpClient: http.DefaultClient,
@@ -239,11 +243,38 @@ func (c *client) execute(cmd string, args, reply interface{}) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
 
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	// If a reply interface is specified, try to Unmarshal the body
+	// into the reply
 	if reply != nil {
 		return json2.DecodeClientResponse(resp.Body, reply)
-	} else {
-		return nil
 	}
+
+	// If a reply interface is not specified, then just check the body
+	// for errors.
+	return decodeClientError(resp.Body)
+}
+
+// decodeClientError decodes the response body of a client request
+// into the interface reply.
+func decodeClientError(r io.Reader) error {
+	var c responseError
+	if err := json.NewDecoder(r).Decode(&c); err != nil {
+		return err
+	}
+	if c.Error != nil {
+		jsonErr := &json2.Error{}
+		if err := json.Unmarshal(*c.Error, jsonErr); err != nil {
+			return &json2.Error{
+				Code:    json2.E_SERVER,
+				Message: string(*c.Error),
+			}
+		}
+		return jsonErr
+	}
+	return nil
 }
