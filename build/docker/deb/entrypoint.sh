@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -e -x
 
 if [ "$TARGET_INIT" = "systemd" ]; then
 	cd $KURMA_DIR

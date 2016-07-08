@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -e -x
 
 cd $KURMA_DIR
 /usr/local/bin/fpm \
