@@ -1,6 +1,8 @@
 #!/bin/bash
 
-PACKAGE_DIR=$(mktemp -d)
+set -e -x
+
+PACKAGE_DIR="$(pwd)/tmp-pkg"
 trap "rm -rf $PACKAGE_DIR" EXIT
 
 mkdir -p $PACKAGE_DIR/usr/bin \
@@ -20,19 +22,39 @@ cp ./bin/kurma-api.aci \
 	./bin/cni-netplugin.aci \
 	$PACKAGE_DIR/usr/share/kurmad
 
-docker run -v $PACKAGE_DIR:/data \
-	   -v $(pwd)/build/docker/deb/systemd-entrypoint.sh:/entrypoint.sh \
-	   -v $(pwd)/build/release/kurmad.service:/kurmad.service \
-	   -v $(pwd)/resources:/resources \
-	   -e VERSION=$VERSION \
-	   -e PKG_NAME="kurmad-systemd" \
-	   kurma/debian-fpm
 
-docker run -v $PACKAGE_DIR:/data \
-	   -v $(pwd)/build/docker/deb/upstart-entrypoint.sh:/entrypoint.sh \
-	   -v $(pwd)/build/release/kurmad.conf:/kurmad.conf \
-	   -v $(pwd)/build/docker/deb/upstart-postinst.sh:/upstart-postinst.sh \
-	   -v $(pwd)/resources:/resources \
-	   -e VERSION=$VERSION \
-	   -e PKG_NAME="kurmad-upstart" \
-	   kurma/debian-fpm:latest
+docker pull kurma/debian-fpm:latest
+docker pull kurma/centos-fpm:latest
+
+if [ -n "$IN_DOCKER" ]; then
+	docker run \
+		   --rm \
+		   --volumes-from $HOSTNAME \
+		   -e KURMA_DIR=$(pwd) \
+		   -e VERSION=$VERSION \
+		   -e TARGET_INIT="systemd" \
+		   kurma/debian-fpm:latest
+
+	docker run \
+		   --rm \
+		   --volumes-from $HOSTNAME \
+		   -e KURMA_DIR=$(pwd) \
+		   -e VERSION=$VERSION \
+		   -e TARGET_INIT="upstart" \
+		   kurma/debian-fpm:latest
+
+else
+	docker run --rm \
+		   -v $(pwd):"/kurma" \
+		   -e KURMA_DIR="/kurma" \
+		   -e VERSION=$VERSION \
+		   -e TARGET_INIT="systemd" \
+		   kurma/debian-fpm:latest
+
+	docker run --rm \
+		   -v $(pwd):"/kurma" \
+		   -e KURMA_DIR="/kurma" \
+		   -e VERSION=$VERSION \
+		   -e TARGET_INIT="upstart" \
+		   kurma/debian-fpm:latest
+fi
