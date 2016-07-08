@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -e -x
 
 PACKAGE_DIR="$(pwd)/tmp-pkg"
 trap "rm -rf $PACKAGE_DIR" EXIT
@@ -39,6 +39,5 @@ else
 		   -v $(pwd):"/kurma" \
 		   -e KURMA_DIR="/kurma" \
 		   -e VERSION=$VERSION \
-		   -e TARGET_INIT="kurmad-systemd" \
 		   kurma/centos-fpm:latest
 fi
