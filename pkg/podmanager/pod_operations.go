@@ -3,6 +3,7 @@
 package podmanager
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/apcera/kurma/pkg/backend"
 	"github.com/appc/spec/schema"
 	"github.com/opencontainers/runc/libcontainer"
 
@@ -265,17 +267,55 @@ func (pod *Pod) startingInitializeContainer() error {
 func (pod *Pod) launchStager() error {
 	pod.log.Debug("Starting pod stager.")
 
-	// Open a log file that all output from the container will be written to
-	flags := os.O_WRONLY | os.O_APPEND | os.O_CREATE | os.O_EXCL | os.O_TRUNC
-	stagerlog, err := os.OpenFile(pod.stagerLogPath(), flags, os.FileMode(0666))
-	if err != nil {
-		return fmt.Errorf("failed to open stager log path: %v", err)
-	}
-	defer stagerlog.Close()
-
 	cwd := pod.stagerImage.App.WorkingDirectory
 	if cwd == "" {
 		cwd = "/"
+	}
+
+	process := &libcontainer.Process{
+		Cwd:  cwd,
+		User: "0",
+		Args: pod.stagerImage.App.Exec,
+	}
+
+	if pod.manager.Options.Debug {
+		// For debugging purposes only at this time. Instead of logging
+		// to files, follow any output from the stager runs including
+		// instead into logs from kurmad.
+		stagerLogReader, stagerOutput, err := os.Pipe()
+		if err != nil {
+			return fmt.Errorf("failed creating pipe for stagers debug output: %s", err)
+		}
+		defer stagerOutput.Close()
+		process.Stdout = stagerOutput
+		process.Stderr = stagerOutput
+
+		scanner := bufio.NewScanner(stagerLogReader)
+		go func(scanner *bufio.Scanner, pod *Pod) {
+			if err := pod.WaitForState(time.Minute, backend.RUNNING); err != nil {
+				return
+			}
+
+			for scanner.Scan() {
+				select {
+				case <-pod.shuttingDownCh:
+					pod.log.Debugf("Stager: Stopping stagers debug logs output")
+					return
+				default:
+					pod.log.Debugf("Stager: %s", scanner.Text())
+				}
+			}
+		}(scanner, pod)
+	} else {
+		// Open a log file that all output from the container will be written to
+		flags := os.O_WRONLY | os.O_APPEND | os.O_CREATE | os.O_EXCL | os.O_TRUNC
+		stagerlog, err := os.OpenFile(pod.stagerLogPath(), flags, os.FileMode(0666))
+		if err != nil {
+			return fmt.Errorf("failed to open stager log path: %v", err)
+		}
+		defer stagerlog.Close()
+		process.Stdout = stagerlog
+		process.Stderr = stagerlog
 	}
 
 	// create the read pipes to pass to the stager
@@ -285,15 +325,11 @@ func (pod *Pod) launchStager() error {
 	}
 	defer readyW.Close()
 	pod.stagerReady = readyR
+	process.ExtraFiles = []*os.File{readyW}
 
-	pod.stagerProcess = &libcontainer.Process{
-		Cwd:        cwd,
-		User:       "0",
-		Args:       pod.stagerImage.App.Exec,
-		Stdout:     stagerlog,
-		Stderr:     stagerlog,
-		ExtraFiles: []*os.File{readyW},
-	}
+	// Set initialized stager process for pod
+	pod.stagerProcess = process
+
 	for _, env := range pod.stagerImage.App.Environment {
 		pod.stagerProcess.Env = append(pod.stagerProcess.Env, fmt.Sprintf("%s=%s", env.Name, env.Value))
 	}
