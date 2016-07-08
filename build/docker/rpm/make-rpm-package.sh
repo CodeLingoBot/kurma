@@ -1,6 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-PACKAGE_DIR=$(mktemp -d)
+set -x
+
+PACKAGE_DIR="$(pwd)/tmp-pkg"
 trap "rm -rf $PACKAGE_DIR" EXIT
 
 mkdir -p $PACKAGE_DIR/usr/bin \
@@ -21,13 +23,22 @@ cp ./bin/kurma-api.aci \
 	./bin/cni-netplugin.aci \
 	$PACKAGE_DIR/usr/share/kurmad
 cp ./build/release/kurmad.service $PACKAGE_DIR/lib/systemd/system
-# note the use of $(pwd) in the bind mount of the entrypoint.sh and startup.sh
-# files as volumes. Docker does not support relative paths for files mounted
-# as volumes.
-docker run -v $PACKAGE_DIR:/data \
-	   -v $(pwd)/build/docker/rpm/entrypoint.sh:/entrypoint.sh \
-	   -v $(pwd)/build/docker/rpm/startup.sh:/startup.sh \
-	   -v $(pwd)/resources:/resources \
-	   -e VERSION=$VERSION \
-	   -e PKG_NAME="kurmad-systemd" \
-	   kurma/centos-fpm:latest
+
+docker pull kurma/debian-fpm:latest
+docker pull kurma/centos-fpm:latest
+
+if [ -n "$IN_DOCKER" ]; then
+	docker run --rm \
+		   --volumes-from $HOSTNAME \
+		   -e KURMA_DIR=$(pwd) \
+		   -e VERSION=$VERSION \
+		   kurma/centos-fpm:latest
+
+else
+	docker run --rm \
+		   -v $(pwd):"/kurma" \
+		   -e KURMA_DIR="/kurma" \
+		   -e VERSION=$VERSION \
+		   -e TARGET_INIT="kurmad-systemd" \
+		   kurma/centos-fpm:latest
+fi

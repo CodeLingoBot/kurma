@@ -4,5 +4,6 @@ RUN apt-get update -y --fix-missing && apt-get install -y ruby-dev gcc make ruby
 
 RUN gem install fpm
 
-# This will be mounted in for flexibility in the fpm command for systemd and upstart.
+ADD ./entrypoint.sh /entrypoint.sh
+
 ENTRYPOINT /entrypoint.sh
