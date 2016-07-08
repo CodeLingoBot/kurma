@@ -28,7 +28,12 @@
       "security_group_id": "sg-9a26a6fd",
       "instance_type": "m3.medium",
       "associate_public_ip_address": true,
-      "delete_on_termination": true,
+      "ami_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "delete_on_termination": true
+        }
+      ],
       "ssh_private_ip": true,
       "ssh_username": "fedora",
       "ami_groups": [ "all" ],
