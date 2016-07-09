@@ -21,6 +21,11 @@ import (
 	"github.com/opencontainers/runc/libcontainer"
 )
 
+var defaultStagerConfig = &common.StagerConfig{
+	RequiredNamespaces: []string{"ipc", "pid", "uts"},
+	DefaultNamespaces:  []string{"ipc", "net", "pid", "uts"},
+}
+
 type containerSetup struct {
 	log *logray.Logger
 
@@ -46,71 +51,6 @@ type containerSetup struct {
 	appWaitch     map[string]chan struct{}
 }
 
-var (
-	defaultStagerConfig = &common.StagerConfig{
-		RequiredNamespaces: []string{"ipc", "pid", "uts"},
-		DefaultNamespaces:  []string{"ipc", "net", "pid", "uts"},
-	}
-
-	// These are the functions that will be called in order to handle stager startup.
-	stagerStartup = []func(*containerSetup) error{
-		(*containerSetup).setupSignalHandling,
-		(*containerSetup).readManifest,
-		(*containerSetup).populateState,
-		(*containerSetup).writeState,
-		(*containerSetup).createFactory,
-		(*containerSetup).containerFilesystem,
-		(*containerSetup).launchInit,
-		(*containerSetup).createContainers,
-		(*containerSetup).markRunning,
-		(*containerSetup).writeState,
-		(*containerSetup).signalReadyPipe,
-	}
-
-	stagerTeardown = []func(*containerSetup) error{
-		(*containerSetup).markShuttingDown,
-		(*containerSetup).writeState,
-		(*containerSetup).stopProcesses,
-		(*containerSetup).stopContainers,
-	}
-)
-
-// run executes the setup functions to start up the stager and the applications
-// in its pod.
-func (cs *containerSetup) run() error {
-	for i, f := range stagerStartup {
-		if err := f(cs); err != nil {
-			cs.log.Errorf("Startup function %d errored: %v", i, err)
-			cs.isStopping = true
-			cs.stop()
-			return err
-		}
-
-		if cs.isStopping == true {
-			break
-		}
-	}
-	return nil
-}
-
-// stop is used to teardown the stager and its applications. Note that the
-// functions do not return after errors and they need to be cognizant of any
-// state they're accessing, as the stager may be tearing down after only
-// partially setting up.
-func (cs *containerSetup) stop() {
-	if cs.isStopping {
-		return
-	}
-
-	for i, f := range stagerTeardown {
-		if err := f(cs); err != nil {
-			cs.log.Errorf("Teardown function %d errored: %v", i, err)
-		}
-	}
-
-	cs.log.Flush()
-}
-
 // writeState is used to persist the current stager state to the state.json
 // file. This can be read by other processes calling in to the stager's exposed
 // command API to quickly access the pod state.
@@ -132,7 +72,7 @@ func (cs *containerSetup) writeState() error {
 
 // setupSignalHandling registers the necessary signal handlers to perform
 // shutdown.
-func (cs *containerSetup) setupSignalHandling() error {
+func (cs *containerSetup) setupSignalHandling() {
 	cs.log.Debug("Setting up signal handlers.")
 
 	signalc := make(chan os.Signal, 1)
@@ -147,7 +87,6 @@ func (cs *containerSetup) setupSignalHandling() error {
 			os.Exit(0)
 		}
 	}()
-	return nil
 }
 
 // readManifest reads in the manifest provided by Kurma for the pod's
@@ -176,7 +115,7 @@ func (cs *containerSetup) readManifest() error {
 // populateState is used to initialize the state tracking object and ensure it
 // includes all of the apps within the pod, even before it has started running
 // them.
-func (cs *containerSetup) populateState() error {
+func (cs *containerSetup) populateState() {
 	cs.stateMutex.Lock()
 	defer cs.stateMutex.Unlock()
 
@@ -187,7 +126,6 @@ func (cs *containerSetup) populateState() error {
 	for _, app := range cs.manifest.Pod.Apps {
 		cs.state.Apps[app.Name.String()] = &common.StagerAppState{}
 	}
-	return nil
 }
 
 // createFactory initializes the libcontainer factory to be ready to create
@@ -195,7 +133,7 @@ func (cs *containerSetup) populateState() error {
 func (cs *containerSetup) createFactory() error {
 	factory, err := libcontainer.New("/containers")
 	if err != nil {
-		return fmt.Errorf("failed to create the libcontainer factory: %v", err)
+		return fmt.Errorf("failed to create the libcontainer factory: %s", err)
 	}
 	cs.factory = factory
 	return nil
@@ -205,13 +143,13 @@ func (cs *containerSetup) createFactory() error {
 func (cs *containerSetup) containerFilesystem() error {
 	cs.log.Debug("Setting up container filesystem")
 
-	// Create the top level directories for execution
+	// Create the top level directories for execution,
+	// omit any errors here since dir could already exits.
+	var err error
 	os.Mkdir("/apps", os.FileMode(0755))
 	os.Mkdir("/init", os.FileMode(0755))
 	os.Mkdir("/logs", os.FileMode(0755))
 
-	// Create the configured provisioner
-	var err error
 	var provisioner graphstorage.StorageProvisioner
 	switch cs.stagerConfig.GraphStorage {
 	case "aufs":
@@ -401,30 +339,27 @@ func (cs *containerSetup) createContainers() error {
 
 // markRunning is used to update the state flag that indicates the pod has been
 // fully setup.
-func (cs *containerSetup) markRunning() error {
+func (cs *containerSetup) markRunning() {
 	cs.log.Info("Marking stager as running.")
 	cs.stateMutex.Lock()
 	cs.state.State = common.StagerStateRunning
 	cs.stateMutex.Unlock()
-	return nil
 }
 
 // signalReadyPipe is used to close the ready pipe from the kurma daemon to let
 // it know that the pod is up.
-func (cs *containerSetup) signalReadyPipe() error {
+func (cs *containerSetup) signalReadyPipe() {
 	f := os.NewFile(3, "ready")
 	f.Close()
 	cs.log.Info("Signaled kurma the pod is running")
-	return nil
 }
 
-func (cs *containerSetup) markShuttingDown() error {
+func (cs *containerSetup) markShuttingDown() {
 	cs.isStopping = true
 	cs.log.Info("Marking stager as shutting down.")
 	cs.stateMutex.Lock()
 	cs.state.State = common.StagerStateTeardown
 	cs.stateMutex.Unlock()
-	return nil
 }
 
 // stopProcesses signals the processes within the containers to stop.
@@ -565,4 +500,94 @@ func (cs *containerSetup) appWait(name string, process *libcontainer.Process) {
 	if err := cs.writeState(); err != nil {
 		cs.log.Errorf("Failed to write state file: %v", err)
 	}
+}
+
+// stop is used to teardown the stager and its applications. Note that the
+// functions do not return after errors and they need to be cognizant of any
+// state they're accessing, as the stager may be tearing down after only
+// partially setting up.
+func (cs *containerSetup) stop() {
+	if cs.isStopping {
+		return
+	}
+	cs.markShuttingDown()
+	err := cs.writeState()
+	if err != nil {
+		cs.log.Errorf("Failed writing state during shutdown: %s", err)
+	}
+	cs.stopProcesses()
+	cs.stopContainers()
+	cs.log.Flush()
+}
+
+// stagerRunner represents the behavior required in order to
+// handle executing a stager.
+type stagerRunner interface {
+	setupSignalHandling()
+	readManifest() error
+	writeState() error
+	populateState()
+	createFactory() error
+	launchInit() error
+	containerFilesystem() error
+	createContainers() error
+	markRunning()
+	markShuttingDown()
+	signalReadyPipe()
+	stop()
+}
+
+// run executes the setup functions to start up the stager and the applications
+// in its pod, returning the first error it encounters then shutting down.
+func run(s stagerRunner) error {
+	var err error
+
+	// Setup signals and load initial conf from manifest.
+	s.setupSignalHandling()
+	err = s.readManifest()
+	if err != nil {
+		return err
+	}
+	s.populateState()
+
+	// Shutdown in case of any error which may come up.
+	defer func() {
+		if err != nil {
+			s.stop()
+		}
+	}()
+	err = s.writeState()
+	if err != nil {
+		return err
+	}
+
+	err = s.createFactory()
+	if err != nil {
+		return err
+	}
+
+	err = s.containerFilesystem()
+	if err != nil {
+		return err
+	}
+
+	err = s.launchInit()
+	if err != nil {
+		return err
+	}
+
+	err = s.createContainers()
+	if err != nil {
+		return err
+	}
+
+	s.markRunning()
+	err = s.writeState()
+	if err != nil {
+		return err
+	}
+
+	s.signalReadyPipe()
+
+	return nil
 }
