@@ -28,7 +28,6 @@ RSpec.describe "Container networking" do
         # matching an IP in the bridge network's range
         pod = api.get_pod(uuid)
         expect(pod).to be_kind_of(Hash)
-        puts pod["pod"]["networks"].inspect
         expect(pod["pod"]["networks"].size).to be(1)
         expect(pod["pod"]["networks"][0]["ip4"]["ip"]).to match(/^10\.220\.0\.\d{1,3}\/16/)
 
