@@ -21,6 +21,7 @@ class Kurma::Server
     cfgfile = File.join(tmppath, "kurmad.yml")
     File.open(cfgfile, "w") do |f|
       f.puts %Q{---
+debug: true
 socketPath: #{tmppath}/kurma.sock
 socketPermissions: 0666
 
