@@ -17,7 +17,6 @@ cp ./bin/kurma-cli ./bin/kurmad $PACKAGE_DIR/usr/bin
 cp ./build/release/base-config.yml $PACKAGE_DIR/etc/kurmad/config.yml
 cp ./bin/kurma-api.aci \
 	./bin/console.aci \
-	./bin/kurma-upgrader.aci \
 	./bin/stager-container.aci \
 	./bin/busybox.aci \
 	./bin/cni-netplugin.aci \
