@@ -1,39 +1,45 @@
 # Kurma Stager Specification
 
-Stagers in Kurma are used to provide a pluggable interface to control pod
-orchestration and supervision.
+Stagers in Kurma are used to provide a pluggable interface to control [pod](https://github.com/appc/spec/blob/master/spec/pods.md)  orchestration and supervision.
 
 When a pod is launched, the Kurma daemon will resolve all of the dependencies
-for the applications in the pod and provide them in the form of a stager
-manifest and bind mount them into the stager's filesystem. This way, a stager
-has everything it needs for launching the workloads.
+for the applications in the [pod](https://github.com/appc/spec/blob/master/spec/pods.md) 
+and provide them in the form of a [stager manifest](https://github.com/apcera/kurma/blob/master/Documentation/stager_specification.md#stager-manifest) and bind mount them into the stager's filesystem.
+
+This way, a stager has everything it needs for launching the workloads:
+
+```sh
+$ pstree -p 23097
+stager(23097)─┬─init(23111)
+              ├─example-workload(23117)─┬─{example-workload}(23122)
+              │                         └─{example-workload}(23124)
+              └─{stager}(23104)
+```
 
 ## Prerequisites
 
-A stager itself is just an ACI image and is loaded in just like any other
-image. In order for an image to be used as a stager, it must meet the following:
+A stager itself is just an [ACI image](https://github.com/appc/spec/blob/master/spec/aci.md) and is loaded in just like any other image. In order for an image to be used as a stager, it must meet the following:
 
-1. The image cannot have any dependencies. A stager should not need any overlay
-   filesystems set up, since the Kurma daemon does not handle any union
-   filesystems. This is the responsibility of the stager for its apps.
+1. The image cannot have any [dependencies](https://github.com/appc/spec/blob/master/spec/aci.md#dependency-matching). A stager should not need any overlay filesystems set up, since the Kurma daemon does not handle any union filesystems. This is the responsibility of the stager for its apps.
+
 2. The image must have a signature with a key that is known and trusted by the
    Kurma daemon. This list of keys is defined in its configuration file and only
-   managable there. Since a stager can execute with host privilege, it must
+   manageable there. Since a stager can execute with host privilege, it must
    ensure the image can be executed in that context first.
 
 ## Execution
 
 When a stager is executed, it will be launched chrooted within a directory
-containing its root filesystem. This ensures its filesystem has all of its
-dependencies and avoids and mismatches with the host's filesystem.
+containing its root filesystem (cf. [ACE Filesystem setup](https://github.com/appc/spec/blob/master/spec/ace.md#filesystem-setup)). 
+This ensures its filesystem has all of its dependencies and avoids and mismatches with the host's filesystem.
 
 When the stager is launched, it will be in its own mount namespace. It will
 typically have its own network namespace, unless the storm is configured to
 share the host's network namespace. The executable will be the `exec`
-setting of the stager's AppC Image Manifest.
+setting of the stager's [AppC Image Manifest](https://github.com/appc/spec/blob/master/spec/aci.md#image-manifest-schema).
 
 The mount namespace is configured to be private. This ensures that any mounts
-made within the stager or its applications will not propagate to the host.
+made within the stager or its applications will not [propagate](http://lwn.net/Articles/690679/) to the host.
 
 The network namespace will be preconfigured with the networking devices for the
 container. Note that it may be the host's network namespace, if the pod is
@@ -68,6 +74,68 @@ items referenced above. The following additional elements will be mounted:
 * `/sys` will be mounted read only.
 * `/sys/fs/cgroups` will be mounted read-write, scoped to just the stager's
   cgroup.
+
+A verbose example of a stager root directory:
+
+```
+tree ./pods/5512aee5/stager/ -L 2
+├── apps
+│   └── api-proxy
+├── bin
+│   ├── busybox
+│   └── modprobe -> busybox
+├── containers
+│   ├── api-proxy
+│   └── init
+├── dev
+├── etc
+│   ├── ld.so.cache
+│   ├── ld.so.conf
+│   └── resolv.conf
+├── init
+│   ├── dev
+│   ├── etc
+│   ├── init
+│   ├── proc
+│   └── sys
+├── layers
+│   └── sha512-cb1c48f988819de775f9127c9ee5d3cb7205d519c401c08030f6cb6a77f9e4cafd9e928c071cf6b67cf7c8846cac1aa32a23c995e4254195e0d77c4e787f0dac
+├── lib
+│   ├── ld-linux-x86-64.so.2
+│   ├── libc.so.6
+│   ├── libdl.so.2
+│   ├── libpthread.so.0
+│   └── modules -> /proc/1/root/lib/modules
+├── lib64 -> lib
+├── logs
+│   ├── api-proxy
+│   └── init.log
+├── manifest
+├── opt
+│   └── stager
+├── proc
+├── stager
+├── state.json
+├── sys
+├── tmp
+│   └── scratch653127451
+└── volumes
+    └── api-proxy-kurma-socket
+```
+
+Example mounts from stager:
+
+```
+sudo cat /proc/23097/mounts
+rootfs / rootfs rw 0 0
+/dev/disk/by-uuid/3af531bb-7c15-4e60-b23f-4853c47ccc91 / ext4 rw,relatime,data=ordered 0 0
+...
+/dev/disk/by-uuid/3af531bb-7c15-4e60-b23f-4853c47ccc91 /layers/sha512-cb1c48f988819de775f9127c9ee5d3cb7205d519c401c08030f6cb6a77f9e4cafd9e928c071cf6b67cf7c8846cac1aa32a23c995e4254195e0d77c4e787f0dac ext4 ro,relatime,data=ordered 0 0
+/dev/disk/by-uuid/3af531bb-7c15-4e60-b23f-4853c47ccc91 /volumes/api-proxy-kurma-socket/kurma.sock ext4 rw,relatime,data=ordered 0 0
+none /apps/api-proxy aufs rw,relatime,si=5e9500bff3167de0 0 0
+/dev/disk/by-uuid/3af531bb-7c15-4e60-b23f-4853c47ccc91 /apps/api-proxy/var/lib/kurma ext4 rw,relatime,data=ordered 0 0
+/dev/disk/by-uuid/3af531bb-7c15-4e60-b23f-4853c47ccc91 /apps/api-proxy/var/lib/kurma/kurma.sock ext4 rw,relatime,data=ordered 0 0
+```
 
 ## Lifetime Management
 
@@ -123,7 +191,7 @@ At the top level, the structure is as follows:
 
 An example document is:
 
-```
+```json
 {
     "kurmaVersion": "0.4.1",
 	"pod": {
@@ -230,7 +298,7 @@ are running and if not, what their exit code was.
 
 The response is in the following format when the pod is in a steady state:
 
-```
+```json
 {
 	"nats": {
         "pid": 1234,
@@ -241,7 +309,7 @@ The response is in the following format when the pod is in a steady state:
 
 For an exited application, it would return `running` of `false` and an `exitCode`.
 
-```
+```json
 {
 	"nats": {
         "exited": true,
