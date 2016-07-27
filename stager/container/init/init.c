@@ -10,6 +10,7 @@
 
 // This function is called when a SIGCHLD signal is received.
 static void signal_sigchld(int sig) {
+	while (waitpid(-1, NULL, WNOHANG) > 0) ;
 	return;
 }
 
@@ -39,7 +40,7 @@ static void setup_signal_handler(void)
 		error(1, errno, "Error in sigaction() for sigchld");
 	}
 
-	// Set up sigterm and sigint.
+	// Set up sigterm.
 	sigterm_handler.sa_handler = signal_sigterm;
 	sigterm_handler.sa_flags = 0;
 	if (sigemptyset(&sigterm_handler.sa_mask)) {
@@ -57,7 +58,8 @@ int main(int argc, char **argv) {
 	// Configure the signal handler.
 	setup_signal_handler();
 
-	// Just wait...
-	pause();
+	// Just wait. Loop it with checking EINTR to handle returning from a signal
+	// handler.
+	while(pause() == -1 && errno == EINTR) ;
 	exit(0);
 }
