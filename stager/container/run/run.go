@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/apcera/kurma/schema"
 	"github.com/opencontainers/runc/libcontainer"
@@ -77,8 +78,20 @@ func Run() error {
 	// process exited non-zero.
 	ps, _ := process.Wait()
 
-	// Wait for other routines to finish up and flush output
-	wg.Wait()
+	// Wait for other routines to finish up and flush output. We time box this to
+	// 100ms. This is because the process can exit before we've finished
+	// reading from its stdout and writing it out our stdout.
+	ch := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	select {
+	case <-ch:
+		break
+	case <-time.After(time.Millisecond * 100):
+		break
+	}
 
 	// We'll explicitly exit here so we can propagate up the exit code
 	if status, ok := ps.Sys().(syscall.WaitStatus); ok {

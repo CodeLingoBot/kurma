@@ -32,24 +32,49 @@ RSpec.describe "CLI create" do
     expect(resp["pods"].size).to eq(initial_pods_count+1)
   end
 
-  it "should enter a container and run a command" do
-    output = cli.run!("create docker://busybox --name busybox --net=host /bin/sleep 60")
-    uuid = output.scan(/Launched pod ([\w-]+)/).flatten.first
-    expect(uuid).not_to be_nil
-    @cleanup << "stop #{uuid}"
+  describe "enter a container" do
+    it "should run a command" do
+      output = cli.run!("create docker://busybox --name busybox --net=host /bin/sleep 60")
+      uuid = output.scan(/Launched pod ([\w-]+)/).flatten.first
+      expect(uuid).not_to be_nil
+      @cleanup << "stop #{uuid}"
 
-    output = cli.run!("enter #{uuid} busybox", "whoami", "exit")
-    output.gsub!("\r", "") # trim carriage returns
-    expect(output).to match("whoami\nroot")
-  end
+      output = cli.run!("enter #{uuid} busybox", "whoami", "exit")
+      output.gsub!("\r", "") # trim carriage returns
+      expect(output).to match("whoami\nroot")
+    end
 
-  it "should enter a container and return the status code on exit" do
-    output = cli.run!("create docker://busybox --name busybox --net=host /bin/sleep 60")
-    uuid = output.scan(/Launched pod ([\w-]+)/).flatten.first
-    expect(uuid).not_to be_nil
-    @cleanup << "stop #{uuid}"
+    it "should return the status code on exit" do
+      output = cli.run!("create docker://busybox --name busybox --net=host /bin/sleep 60")
+      uuid = output.scan(/Launched pod ([\w-]+)/).flatten.first
+      expect(uuid).not_to be_nil
+      @cleanup << "stop #{uuid}"
 
-    _, _, status = cli.run("enter #{uuid} busybox", "exit 45")
-    expect(status.exitstatus).to be(45)
+      _, _, status = cli.run("enter #{uuid} busybox", "exit 45")
+      expect(status.exitstatus).to be(45)
+    end
+
+    it "should fork off a process" do
+      output = cli.run!("create docker://busybox --name busybox --net=host /bin/sleep 60")
+      uuid = output.scan(/Launched pod ([\w-]+)/).flatten.first
+      expect(uuid).not_to be_nil
+      @cleanup << "stop #{uuid}"
+
+      time_before = Time.now.to_i
+      output = cli.run!("enter #{uuid} busybox", "sleep 5 &", "echo forked", "exit")
+      time_after = Time.now.to_i
+
+      expect(time_after - time_before).to be < 5
+
+      output.gsub!("\r", "") # trim carriage returns
+      expect(output).to match("forked")
+
+      # wait 7 seconds, the pod should still be alive
+      sleep 7
+
+      # get the pod, validate its status
+      pod = api.get_pod(uuid)
+      expect(pod["pod"]["state"]).to eq("RUNNING")
+    end
   end
 end
