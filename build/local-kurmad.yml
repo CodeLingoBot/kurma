@@ -7,6 +7,7 @@
 # Note the paths here are intentional, as the running of the daemon is setup
 # through `run.sh`
 
+debug: true
 socketPath: ./kurma.sock
 socketPermissions: 0666
 parentCgroupName: kurma
