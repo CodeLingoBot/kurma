@@ -32,7 +32,7 @@ func cmdStatus(cmd *cobra.Command, args []string) {
 
 	info, err := cli.GetClient().Info()
 	if err != nil {
-		fmt.Printf("Failed to get host status: %v", err)
+		fmt.Printf("Failed to get host status: %v\n", err)
 		os.Exit(1)
 	}
 
