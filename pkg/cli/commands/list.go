@@ -34,7 +34,7 @@ func cmdList(cmd *cobra.Command, args []string) {
 
 	pods, err := cli.GetClient().ListPods()
 	if err != nil {
-		fmt.Printf("Failed to get list of pods: %v", err)
+		fmt.Printf("Failed to get list of pods: %v\n", err)
 		os.Exit(1)
 	}
 

@@ -44,7 +44,7 @@ func cmdImageList(cmd *cobra.Command, args []string) {
 
 	images, err := cli.GetClient().ListImages()
 	if err != nil {
-		fmt.Printf("Failed to get list of containers: %v", err)
+		fmt.Printf("Failed to get list of containers: %v\n", err)
 		os.Exit(1)
 	}
 

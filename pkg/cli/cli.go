@@ -40,9 +40,14 @@ func init() {
 }
 
 func GetClient() apiclient.Client {
-	c, err := apiclient.New(determineKurmaHostPort())
+	u := determineKurmaHostPort()
+	if u == "" {
+		fmt.Fprintf(os.Stderr, "Failed to locate kurma daemon.\nPlease ensure kurma is running, or set your KURMA_HOST environment variable to locate it.\n")
+		os.Exit(1)
+	}
+	c, err := apiclient.New(u)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create client: %v", err)
+		fmt.Fprintf(os.Stderr, "Failed to create client: %v\n", err)
 		os.Exit(1)
 	}
 	return c
@@ -62,6 +67,25 @@ func determineKurmaHostPort() string {
 		return u.String()
 	}
 
-	u := url.URL{Scheme: "unix", Path: "/var/lib/kurma/kurma.sock"}
+	p := searchSocketLocations()
+	if p == "" {
+		return ""
+	}
+	u := url.URL{Scheme: "unix", Path: p}
 	return u.String()
+}
+
+var socketSearchLocations = []string{
+	"/var/lib/kurma/kurma.sock",
+	"/var/run/kurma.sock",
+}
+
+func searchSocketLocations() string {
+	for _, p := range socketSearchLocations {
+		if _, err := os.Lstat(p); err != nil {
+			continue
+		}
+		return p
+	}
+	return ""
 }
