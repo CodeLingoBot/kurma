@@ -45,4 +45,7 @@ echo "/lib" > $dir/etc/ld.so.conf
 (cd $dir && ldconfig -r . -C etc/ld.so.cache -f etc/ld.so.conf)
 
 # generate the aci
-go run ../build.go -manifest ./manifest.yaml -root $dir -output $BASE_PATH/$1
+if [ -n "$VERSION" ]; then
+    params="-version $VERSION"
+fi
+go run ../build.go -manifest ./manifest.yaml -root $dir $params -output $BASE_PATH/$1
