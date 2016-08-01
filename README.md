@@ -109,4 +109,4 @@ it does actively launch the daemon rather than connect to an outside one.
 [Build-Status-URL]: http://ci.kurma.io
 [Build-Status-Image]: https://img.shields.io/teamcity/http/ci.kurma.io/s/Kurma_UnitTests_2.svg
 [Release-URL]: https://kurma.io/download
-[Release-Image]: https://img.shields.io/badge/release-v0.3.3-1eb0fc.svg
+[Release-Image]: https://img.shields.io/badge/release-v0.4.0-1eb0fc.svg
