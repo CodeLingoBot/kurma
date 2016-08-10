@@ -68,7 +68,7 @@ To connect with kurma-cli, please run:
 
 ### Downloading Kurma
 
-The latest release images can be [on our website](https://kurma.io/download).
+The latest release images can be found [on our website](https://kurma.io/download).
 
 ### Running Tests
 
