@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/apcera/kurma/pkg/aciremote"
 	"github.com/apcera/kurma/pkg/backend"
 	"github.com/apcera/kurma/pkg/daemon"
+	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/kurma/pkg/imagestore"
 	"github.com/apcera/kurma/pkg/networkmanager"
 	"github.com/apcera/kurma/pkg/podmanager"
@@ -150,15 +150,15 @@ func (r *runner) createDirectories() error {
 // prefetchImages is used to fetch specified images on start up to pre-load
 // them.
 func (r *runner) prefetchImages() {
-	for _, aci := range r.config.PrefetchImages {
-		_, _, err := aciremote.LoadImage(aci, true, r.imageManager)
+	for _, img := range r.config.PrefetchImages {
+		// TODO: configurable `insecure` option
+		_, _, err := image.FetchAndLoad(img, nil, true, r.imageManager)
 		if err != nil {
-			r.log.Warnf("Failed to fetch image %q: %v", aci, err)
+			r.log.Warnf("Failed to fetch image %q: %v", img, err)
 			continue
 		}
-		r.log.Debugf("Fetched image %s", aci)
+		r.log.Debugf("Fetched image %q", img)
 	}
-	return
 }
 
 // createImageManager creates the image manager that is used to store and
@@ -183,7 +183,7 @@ func (r *runner) createPodManager() error {
 	if r.config.DefaultStagerImage == "" {
 		return fmt.Errorf("a defaultStagerImage setting must be specified")
 	}
-	stagerHash, _, err := aciremote.LoadImage(r.config.DefaultStagerImage, true, r.imageManager)
+	stagerHash, _, err := image.FetchAndLoad(r.config.DefaultStagerImage, nil, true, r.imageManager)
 	if err != nil {
 		return fmt.Errorf("failed to fetch default stager image %q: %v", r.config.DefaultStagerImage, err)
 	}
@@ -221,7 +221,7 @@ func (r *runner) createNetworkManager() {
 	networkDrivers := make([]*backend.NetworkDriver, 0, len(r.config.PodNetworks))
 
 	for _, podNet := range r.config.PodNetworks {
-		hash, _, err := aciremote.LoadImage(podNet.ACI, true, r.imageManager)
+		hash, _, err := image.FetchAndLoad(podNet.ACI, nil, true, r.imageManager)
 		if err != nil {
 			r.log.Warnf("Failed to load image for network %q: %v", podNet.Name, err)
 			continue
