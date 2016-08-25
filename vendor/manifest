@@ -26,6 +26,51 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/apcera/util/docker",
+			"repository": "https://github.com/apcera/util",
+			"vcs": "git",
+			"revision": "65ec49d82bbdc9c396c7284e73d1d8f45d01ca69",
+			"branch": "master",
+			"path": "/docker",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/apcera/util/dockertest/v1",
+			"repository": "https://github.com/apcera/util",
+			"vcs": "git",
+			"revision": "65ec49d82bbdc9c396c7284e73d1d8f45d01ca69",
+			"branch": "master",
+			"path": "dockertest/v1",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/apcera/util/dockertest/v2",
+			"repository": "https://github.com/apcera/util",
+			"vcs": "git",
+			"revision": "f5ad6635f7d5a0ea4de4fd88c08dd02a3117ef87",
+			"branch": "master",
+			"path": "/dockertest/v2",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/apcera/util/dockertest/vendor/github.com/gorilla/context",
+			"repository": "https://github.com/apcera/util",
+			"vcs": "git",
+			"revision": "65ec49d82bbdc9c396c7284e73d1d8f45d01ca69",
+			"branch": "master",
+			"path": "dockertest/vendor/github.com/gorilla/context",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/apcera/util/dockertest/vendor/github.com/gorilla/mux",
+			"repository": "https://github.com/apcera/util",
+			"vcs": "git",
+			"revision": "65ec49d82bbdc9c396c7284e73d1d8f45d01ca69",
+			"branch": "master",
+			"path": "dockertest/vendor/github.com/gorilla/mux",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/apcera/util/hashutil",
 			"repository": "https://github.com/apcera/util",
 			"vcs": "git",
