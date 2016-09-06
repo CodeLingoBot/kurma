@@ -36,29 +36,18 @@ type dockerPuller struct {
 
 // New creates a new dockerPuller to pull a remote Docker image.
 func New(insecure bool) remote.Puller {
-	return &dockerPuller{
+	puller := &dockerPuller{
 		insecure:     insecure,
-		convertToACI: true,
+		convertToACI: true, // FIXME: should we support pull without conversion?
 		squashLayers: true,
 	}
+	return puller
 }
 
 // Pull fetches a remote Docker image.
-func (d *dockerPuller) Pull(dockerImageURI string) (io.ReadCloser, error) {
+func (d *dockerPuller) Pull(dockerImageURI string) ([]io.ReadCloser, error) {
 	if !strings.HasPrefix(dockerImageURI, "docker://") {
 		return nil, fmt.Errorf("only 'docker://' scheme image URLs supported")
-	}
-
-	if d.convertToACI && d.squashLayers {
-		return d.pullAsACI(dockerImageURI)
-	}
-	return nil, errors.New("only ACI-squash-pull currently supported")
-}
-
-// pullAsACI fetches a Docker image and converts it into an ACI.
-func (d *dockerPuller) pullAsACI(dockerImageURI string) (io.ReadCloser, error) {
-	if !d.convertToACI {
-		return nil, errors.New("not configured to convert to ACI")
 	}
 
 	dockerURL, err := docker.ParseDockerRegistryURL(dockerImageURI)
@@ -73,15 +62,31 @@ func (d *dockerPuller) pullAsACI(dockerImageURI string) (io.ReadCloser, error) {
 	defer os.RemoveAll(tmpdir)
 
 	schemelessURL := strings.TrimPrefix(dockerURL.String(), "docker://")
-	acis, err := docker2aci.ConvertRemoteRepo(schemelessURL, docker2aci.RemoteConfig{
+
+	config := docker2aci.RemoteConfig{
 		CommonConfig: docker2aci.CommonConfig{
 			Squash:      d.squashLayers,
-			OutputDir:   tmpdir,
+			OutputDir:   tmpdir, // FIXME(alex): this should go to the image path on disk
 			TmpDir:      tmpdir,
 			Compression: docker2acicommon.NoCompression,
 		},
 		Insecure: d.insecure,
-	})
+	}
+
+	if d.convertToACI {
+		return d.pullAsACI(schemelessURL, config)
+	}
+	return nil, errors.New("only ACI conversion pull supported")
+}
+
+// pullAsACI fetches a Docker image and converts it into an ACI. Callers are
+// responsible for closing the Reader(s).
+func (d *dockerPuller) pullAsACI(dockerURL string, config docker2aci.RemoteConfig) ([]io.ReadCloser, error) {
+	if !d.convertToACI {
+		return nil, errors.New("not configured to convert to ACI")
+	}
+
+	acis, err := docker2aci.ConvertRemoteRepo(dockerURL, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert Docker image: %s", err)
 	}
@@ -90,9 +95,15 @@ func (d *dockerPuller) pullAsACI(dockerImageURI string) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("fetched %d layer(s), expected 1", len(acis))
 	}
 
-	f, err := os.Open(acis[0])
-	if err != nil {
-		return nil, fmt.Errorf("failed to open converted Docker image: %s", err)
+	files := make([]io.ReadCloser, len(acis))
+
+	for j, aci := range acis {
+		f, err := os.Open(aci)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open converted Docker image %q: %s", aci, err)
+		}
+		files[j] = f
 	}
-	return f, nil
+
+	return files, nil
 }
