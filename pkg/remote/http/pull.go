@@ -33,7 +33,7 @@ func New() remote.Puller {
 
 // Pull fetches a remote image. Callers should close the ReadCloser after
 // reading.
-func (c *client) Pull(imageURI string) (io.ReadCloser, error) {
+func (c *client) Pull(imageURI string) ([]io.ReadCloser, error) {
 	resp, err := c.Client.Get(imageURI)
 	if err != nil {
 		return nil, err
@@ -45,5 +45,5 @@ func (c *client) Pull(imageURI string) (io.ReadCloser, error) {
 		return nil, fmt.Errorf("HTTP %d on retrieving %q", resp.StatusCode, imageURI)
 	}
 
-	return resp.Body, nil
+	return []io.ReadCloser{resp.Body}, nil
 }

@@ -54,11 +54,16 @@ func createPodFromFile(file string) (*apiclient.Image, error) {
 			labels[types.ACIdentifier("os")] = "linux"
 			labels[types.ACIdentifier("arch")] = info.Arch
 
-			f, err = image.Fetch(file, labels, true)
+			layers, err := image.Fetch(file, labels, true)
 			if err != nil {
 				fmt.Printf("Failed to retrieve the container image: %v\n", err)
 				os.Exit(1)
 			}
+			if len(layers) != 1 {
+				fmt.Println("Multi-layer images currently not supported")
+				os.Exit(1)
+			}
+			f = layers[0]
 		} else {
 			fmt.Printf("Failed to open the container image: %v\n", err)
 			os.Exit(1)

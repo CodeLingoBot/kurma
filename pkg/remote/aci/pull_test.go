@@ -37,11 +37,18 @@ func TestACIPull_InsecureHTTPDiscover(t *testing.T) {
 
 	puller := buildACIPuller(true)
 
-	f, err := puller.Pull(imageName)
+	acis, err := puller.Pull(imageName)
 	if err != nil {
 		t.Fatalf("Failed to pull %q: %s", imageName, err)
 	}
-	f.Close()
+
+	if len(acis) != 1 {
+		t.Fatalf("Expected 1 ACI, got %d", len(acis))
+	}
+
+	for _, a := range acis {
+		a.Close()
+	}
 }
 
 func TestACIPull_SecureHTTPSDiscover(t *testing.T) {

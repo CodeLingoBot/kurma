@@ -8,6 +8,7 @@ import (
 
 // A Puller pulls container images.
 type Puller interface {
-	// Pull fetches an image.
-	Pull(uri string) (io.ReadCloser, error)
+	// Pull fetches images. Multiple layers may be returned depending upon
+	// format and content of requested image.
+	Pull(uri string) ([]io.ReadCloser, error)
 }

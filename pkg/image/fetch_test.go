@@ -17,11 +17,14 @@ func TestFetch_LocalFile(t *testing.T) {
 
 	uri := "file://" + f.Name()
 
-	reader, err := Fetch(uri, nil, false)
+	readers, err := Fetch(uri, nil, false)
 	if err != nil {
 		t.Fatalf("Expected no error retrieving %s; got %s", uri, err)
 	}
-	reader.Close()
+
+	for _, r := range readers {
+		r.Close()
+	}
 }
 
 func TestFetch_UnsupportedScheme(t *testing.T) {

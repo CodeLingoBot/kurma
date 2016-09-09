@@ -42,7 +42,7 @@ func New(insecure bool, labels map[types.ACIdentifier]string) remote.Puller {
 // Pull can be used to retrieve a remote image, and optionally discover
 // an image based on the App Container Image Discovery specification. Callers
 // should close the ReadCloser after reading.
-func (a *aciPuller) Pull(aci string) (io.ReadCloser, error) {
+func (a *aciPuller) Pull(aci string) ([]io.ReadCloser, error) {
 	app, err := discovery.NewAppFromString(aci)
 	if err != nil {
 		return nil, err
@@ -64,13 +64,13 @@ func (a *aciPuller) Pull(aci string) (io.ReadCloser, error) {
 	httpPuller := remotehttp.New()
 
 	for _, ep := range endpoints {
-		r, err := httpPuller.Pull(ep.ACI)
+		readers, err := httpPuller.Pull(ep.ACI)
 		if err != nil {
 			// TODO: log
 			continue
 		}
-		// TODO: verify signature of downloaded ACI.
-		return r, nil
+		// TODO: verify signature of downloaded ACI(s).
+		return readers, nil
 	}
 	return nil, fmt.Errorf("failed to find a valid image for %q", aci)
 }

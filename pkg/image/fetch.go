@@ -25,13 +25,15 @@ import (
 // live as a method on that struct.
 func FetchAndLoad(imageURI string, labels map[types.ACIdentifier]string, insecure bool, imageManager backend.ImageManager) (
 	string, *schema.ImageManifest, error) {
-	f, err := Fetch(imageURI, labels, insecure)
+	layers, err := Fetch(imageURI, labels, insecure)
 	if err != nil {
 		return "", nil, err
 	}
-	defer f.Close()
+	for _, l := range layers {
+		defer l.Close()
+	}
 
-	hash, manifest, err := loadFromFile(f, imageManager)
+	hash, manifest, err := loadFromFile(layers[0], imageManager)
 	if err != nil {
 		return "", nil, err
 	}
@@ -40,7 +42,7 @@ func FetchAndLoad(imageURI string, labels map[types.ACIdentifier]string, insecur
 
 // Fetch retrieves a container image. Images may be sourced from the local
 // machine, or may be retrieved from a remote server.
-func Fetch(imageURI string, labels map[types.ACIdentifier]string, insecure bool) (tempfile.ReadSeekCloser, error) {
+func Fetch(imageURI string, labels map[types.ACIdentifier]string, insecure bool) ([]tempfile.ReadSeekCloser, error) {
 	u, err := url.Parse(imageURI)
 	if err != nil {
 		return nil, err
@@ -59,7 +61,11 @@ func Fetch(imageURI string, labels map[types.ACIdentifier]string, insecure bool)
 			return nil, err
 		}
 
-		return tempfile.New(f)
+		t, err := tempfile.New(f)
+		if err != nil {
+			return nil, err
+		}
+		return []tempfile.ReadSeekCloser{t}, nil
 	case "http", "https":
 		puller = http.New()
 	case "docker":
@@ -70,11 +76,21 @@ func Fetch(imageURI string, labels map[types.ACIdentifier]string, insecure bool)
 		return nil, fmt.Errorf("%q scheme not supported", u.Scheme)
 	}
 
-	r, err := puller.Pull(imageURI)
+	layers, err := puller.Pull(imageURI)
 	if err != nil {
 		return nil, err
 	}
-	return tempfile.New(r)
+
+	wrappedLayers := make([]tempfile.ReadSeekCloser, len(layers))
+	for j, layer := range layers {
+		t, err := tempfile.New(layer)
+		if err != nil {
+			return nil, err
+		}
+		wrappedLayers[j] = t
+	}
+
+	return wrappedLayers, nil
 }
 
 // loadFromFile loads a file as an image for use within Kurma.
