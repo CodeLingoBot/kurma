@@ -28,6 +28,30 @@ func (s *Server) imageCreateRequest(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
+// imageFetchRequest is a handler for requests instructing the daemon to fetch
+// and create a particular image.
+func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
+	defer req.Body.Close()
+
+	var imageFetchRequest *apiclient.ImageFetchRequest
+	if err := json.Unmarshal(req.Body, &imageFetchRequest); err != nil {
+		s.log.Errorf("Failed to unmarshal request body: %s", err)
+		http.Error(w, "Failed to parse request body", http.StatusBadRequest)
+		return
+	}
+
+	hash, manifest, err := imageFetchRequest.FetchAndLoad(imageFetchRequest.ImageURI, s.options.ImageManager)
+	if err != nil {
+		s.log.Errorf("Failed create image: %s", err)
+		http.Error(w, "Failed to create image", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	resp := &apiclient.ImageResponse{Image: &apiclient.Image{Hash: hash, Manifest: manifest}}
+	json.NewEncoder(w).Encode(resp)
+}
+
 func (s *ImageService) List(r *http.Request, args *apiclient.None, resp *apiclient.ImageListResponse) error {
 	images := s.server.options.ImageManager.ListImages()
 	resp.Images = make([]*apiclient.Image, 0, len(images))

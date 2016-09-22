@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/kurma/schema"
 	"github.com/apcera/util/wsconn"
 	"github.com/gorilla/rpc/v2/json2"
@@ -26,6 +27,7 @@ type Client interface {
 	DestroyPod(uuid string) error
 	EnterContainer(uuid string, appName string, app *schema.RunApp) (net.Conn, error)
 
+	FetchImage(imageURI string) (*Image, error)
 	CreateImage(reader io.Reader) (*Image, error)
 	ListImages() ([]*Image, error)
 	GetImage(hash string) (*Image, error)
@@ -172,6 +174,35 @@ func (c *client) EnterContainer(uuid string, appName string, app *schema.RunApp)
 	return wsc, nil
 }
 
+// FetchImage instructs the remote Kurma daemon to fetch and load the requested
+// image.
+func (c *client) FetchImage(imageURI string, fetchCfg *image.FetchConfig) (*Image, error) {
+	u, err := url.Parse(c.baseUrl)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = "/images/fetch"
+
+	imageFetchRequest := &ImageFetchRequest{
+		ImageURI:    imageURI,
+		FetchConfig: fetchCfg,
+	}
+
+	fetchReqBytes, err := json.Marshal(imageFetchRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", u.String(), bytes.NewBuffer(fetchReqBytes))
+	if err != nil {
+		return nil, err
+	}
+
+	return c.handleImageCreate(req)
+}
+
+// CreateImage uploads a downloaded image file to the Kurma daemon to create a
+// new image.
 func (c *client) CreateImage(reader io.Reader) (*Image, error) {
 	u, err := url.Parse(c.baseUrl)
 	if err != nil {
@@ -184,6 +215,10 @@ func (c *client) CreateImage(reader io.Reader) (*Image, error) {
 		return nil, err
 	}
 
+	return c.handleImageCreate(req)
+}
+
+func (c *client) handleImageCreate(req *http.Request) (*Image, error) {
 	resp, err := c.HttpClient.Do(req)
 	if err != nil {
 		return nil, err

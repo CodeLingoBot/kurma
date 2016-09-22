@@ -85,6 +85,7 @@ func (s *Server) Start() error {
 	router.HandleFunc("/info", s.infoRequest).Methods("GET")
 	router.HandleFunc("/containers/enter", s.containerEnterRequest).Methods("GET")
 	router.HandleFunc("/images/create", s.imageCreateRequest).Methods("POST")
+	router.HandleFunc("/images/fetch", s.imageFetchRequest).Methods("POST")
 
 	s.log.Debug("Server is ready")
 	go func() {
