@@ -105,8 +105,12 @@ func (ip *InitialPodManifest) Process(imageManager backend.ImageManager) (string
 
 	hash, imageManifest := imageManager.FindImage(ip.image, "")
 	if imageManifest == nil {
+		imageFetchCfg := &image.FetchConfig{
+			Insecure: true,
+		}
+
 		var err error
-		hash, imageManifest, err = image.FetchAndLoad(ip.image, nil, true, imageManager)
+		hash, imageManifest, err = imageFetchCfg.FetchAndLoad(ip.image, imageManager)
 		if err != nil {
 			return ip.name, nil, fmt.Errorf("failed to get a retrieve image %q: %v", ip.image, err)
 		}
@@ -200,6 +204,8 @@ func bootstrap(r setupRunner) error {
 	if err != nil {
 		return err
 	}
+
+	r.configureImageFetch()
 
 	err = r.createImageManager()
 	if err != nil {

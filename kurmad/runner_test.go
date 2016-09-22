@@ -31,6 +31,7 @@ func (r *dummyFailRunner) loadConfigurationFile() error {
 }
 func (r *dummyFailRunner) configureLogging()         {}
 func (r *dummyFailRunner) createDirectories() error  { return nil }
+func (r *dummyFailRunner) configureImageFetch()      {}
 func (r *dummyFailRunner) createImageManager() error { return nil }
 func (r *dummyFailRunner) prefetchImages()           {}
 func (r *dummyFailRunner) createPodManager() error {
@@ -63,6 +64,7 @@ func (r *dummyOKRunner) setupSignalHandling()         {}
 func (r *dummyOKRunner) loadConfigurationFile() error { return nil }
 func (r *dummyOKRunner) configureLogging()            {}
 func (r *dummyOKRunner) createDirectories() error     { return nil }
+func (r *dummyOKRunner) configureImageFetch()         {}
 func (r *dummyOKRunner) createImageManager() error    { return nil }
 func (r *dummyOKRunner) prefetchImages()              {}
 func (r *dummyOKRunner) createPodManager() error      { return nil }

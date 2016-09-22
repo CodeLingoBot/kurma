@@ -29,6 +29,7 @@ type setupRunner interface {
 	loadConfigurationFile() error
 	configureLogging()
 	createDirectories() error
+	configureImageFetch()
 	createImageManager() error
 	prefetchImages()
 	createPodManager() error
@@ -40,12 +41,13 @@ type setupRunner interface {
 // runner is an object that is used to handle the startup of the system.
 // It will take of the running of the process once init.Run() is invoked.
 type runner struct {
-	config         *Config
-	configFile     string
-	log            *logray.Logger
-	podManager     backend.PodManager
-	imageManager   backend.ImageManager
-	networkManager backend.NetworkManager
+	config           *Config
+	configFile       string
+	log              *logray.Logger
+	imageFetchConfig *image.FetchConfig
+	podManager       backend.PodManager
+	imageManager     backend.ImageManager
+	networkManager   backend.NetworkManager
 }
 
 // setupSignalHandling sets up the callbacks for signals to cleanly shutdown.
@@ -151,13 +153,21 @@ func (r *runner) createDirectories() error {
 // them.
 func (r *runner) prefetchImages() {
 	for _, img := range r.config.PrefetchImages {
-		// TODO: configurable `insecure` option
-		_, _, err := image.FetchAndLoad(img, nil, true, r.imageManager)
+		_, _, err := r.imageFetchConfig.FetchAndLoad(img, r.imageManager)
 		if err != nil {
 			r.log.Warnf("Failed to fetch image %q: %v", img, err)
 			continue
 		}
 		r.log.Debugf("Fetched image %q", img)
+	}
+}
+
+// configureImageFetch configures options used when Kurma fetches an image
+// during initialization.
+func (r *runner) configureImageFetch() {
+	r.imageFetchConfig = &image.FetchConfig{
+		// TODO: this should be user-configurable.
+		Insecure: true,
 	}
 }
 
@@ -183,7 +193,7 @@ func (r *runner) createPodManager() error {
 	if r.config.DefaultStagerImage == "" {
 		return fmt.Errorf("a defaultStagerImage setting must be specified")
 	}
-	stagerHash, _, err := image.FetchAndLoad(r.config.DefaultStagerImage, nil, true, r.imageManager)
+	stagerHash, _, err := r.imageFetchConfig.FetchAndLoad(r.config.DefaultStagerImage, r.imageManager)
 	if err != nil {
 		return fmt.Errorf("failed to fetch default stager image %q: %v", r.config.DefaultStagerImage, err)
 	}
@@ -221,7 +231,7 @@ func (r *runner) createNetworkManager() {
 	networkDrivers := make([]*backend.NetworkDriver, 0, len(r.config.PodNetworks))
 
 	for _, podNet := range r.config.PodNetworks {
-		hash, _, err := image.FetchAndLoad(podNet.ACI, nil, true, r.imageManager)
+		hash, _, err := r.imageFetchConfig.FetchAndLoad(podNet.ACI, r.imageManager)
 		if err != nil {
 			r.log.Warnf("Failed to load image for network %q: %v", podNet.Name, err)
 			continue
