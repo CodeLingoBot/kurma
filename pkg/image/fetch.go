@@ -20,12 +20,22 @@ import (
 	"github.com/appc/spec/schema/types"
 )
 
+// A FetchConfig contains configuration for an image fetch operation.
+type FetchConfig struct {
+	// ACILabels are labels that scope the image resolution request.
+	ACILabels map[types.ACIdentifier]string `json:"aci_labels,omitempty"`
+
+	// Insecure is an option that, if enabled, will fetch images insecurely.
+	// For instance, this will disable signature verification, and will use
+	// HTTP for fetching images rather than HTTPS, where applicable.
+	Insecure bool `json:"insecure"`
+}
+
 // FetchAndLoad retrieves a container image and loads it for use within kurmad.
-// TODO: refactor out `labels`, `insecure` opts to a config struct. This can
-// live as a method on that struct.
-func FetchAndLoad(imageURI string, labels map[types.ACIdentifier]string, insecure bool, imageManager backend.ImageManager) (
+func (f *FetchConfig) FetchAndLoad(imageURI string, imageManager backend.ImageManager) (
 	string, *schema.ImageManifest, error) {
-	layers, err := Fetch(imageURI, labels, insecure)
+
+	layers, err := f.Fetch(imageURI)
 	if err != nil {
 		return "", nil, err
 	}
@@ -42,7 +52,7 @@ func FetchAndLoad(imageURI string, labels map[types.ACIdentifier]string, insecur
 
 // Fetch retrieves a container image. Images may be sourced from the local
 // machine, or may be retrieved from a remote server.
-func Fetch(imageURI string, labels map[types.ACIdentifier]string, insecure bool) ([]tempfile.ReadSeekCloser, error) {
+func (f *FetchConfig) Fetch(imageURI string) ([]tempfile.ReadSeekCloser, error) {
 	u, err := url.Parse(imageURI)
 	if err != nil {
 		return nil, err
@@ -69,9 +79,9 @@ func Fetch(imageURI string, labels map[types.ACIdentifier]string, insecure bool)
 	case "http", "https":
 		puller = http.New()
 	case "docker":
-		puller = docker.New(insecure)
+		puller = docker.New(f.Insecure)
 	case "aci", "":
-		puller = aci.New(insecure, labels)
+		puller = aci.New(f.Insecure, f.ACILabels)
 	default:
 		return nil, fmt.Errorf("%q scheme not supported", u.Scheme)
 	}
