@@ -22,6 +22,7 @@ var (
 		(*runner).runUdev,
 		(*runner).mountDisks,
 		(*runner).cleanOldPods,
+		(*runner).configureImageFetch,
 		(*runner).createImageManager,
 		(*runner).loadAvailableImages,
 		(*runner).createPodManager,

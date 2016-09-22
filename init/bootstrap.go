@@ -590,6 +590,18 @@ func (r *runner) createImageManager() error {
 	return nil
 }
 
+// configureImageFetch configures options used when Kurma fetches an image
+// during initialization.
+func (r *runner) configureImageFetch() error {
+	cfg := &image.FetchConfig{
+		// TODO: this should be configurable by users.
+		Insecure: true,
+	}
+
+	r.imageFetchConfig = cfg
+	return nil
+}
+
 // createPodManager creates the pod manager to allow pods to be
 // launched.
 func (r *runner) createPodManager() error {
@@ -597,7 +609,7 @@ func (r *runner) createPodManager() error {
 	if r.config.DefaultStagerImage == "" {
 		return fmt.Errorf("a defaultStagerImage setting must be specified")
 	}
-	stagerHash, _, err := image.FetchAndLoad(r.config.DefaultStagerImage, nil, true, r.imageManager)
+	stagerHash, _, err := r.imageFetchConfig.FetchAndLoad(r.config.DefaultStagerImage, r.imageManager)
 	if err != nil {
 		return fmt.Errorf("failed to fetch default stager image %q: %v", r.config.DefaultStagerImage, err)
 	}
@@ -636,7 +648,7 @@ func (r *runner) createNetworkManager() error {
 	networkDrivers := make([]*backend.NetworkDriver, 0, len(r.config.PodNetworks))
 
 	for _, podNet := range r.config.PodNetworks {
-		hash, _, err := image.FetchAndLoad(podNet.ACI, nil, true, r.imageManager)
+		hash, _, err := r.imageFetchConfig.FetchAndLoad(podNet.ACI, r.imageManager)
 		if err != nil {
 			r.log.Warnf("Failed to load image for network %q: %v", podNet.Name, err)
 			continue
@@ -843,7 +855,7 @@ func (r *runner) setupDiscoveryProxy() error {
 func (r *runner) prefetchImages() error {
 	for _, aci := range r.config.PrefetchImages {
 		// TODO: configurable `insecure` option
-		_, _, err := image.FetchAndLoad(aci, nil, true, r.imageManager)
+		_, _, err := r.imageFetchConfig.FetchAndLoad(aci, r.imageManager)
 		if err != nil {
 			r.log.Warnf("Failed to fetch image %q: %v", aci, err)
 			continue
