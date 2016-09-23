@@ -23,6 +23,10 @@ class Kurma::ApiClient
     @client.invoke("Pods.List", [])
   end
 
+  def list_images
+    @client.invoke("Images.List", [])
+  end
+
   def get_pod(uuid)
     @client.invoke("Pods.Get", [uuid])
   end
