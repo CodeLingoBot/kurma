@@ -34,7 +34,7 @@ func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	var imageFetchRequest *apiclient.ImageFetchRequest
-	if err := json.Unmarshal(req.Body, &imageFetchRequest); err != nil {
+	if err := json.NewDecoder(req.Body).Decode(&imageFetchRequest); err != nil {
 		s.log.Errorf("Failed to unmarshal request body: %s", err)
 		http.Error(w, "Failed to parse request body", http.StatusBadRequest)
 		return
