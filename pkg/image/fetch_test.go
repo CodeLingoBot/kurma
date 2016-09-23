@@ -17,7 +17,9 @@ func TestFetch_LocalFile(t *testing.T) {
 
 	uri := "file://" + f.Name()
 
-	readers, err := Fetch(uri, nil, false)
+	fetchCfg := &FetchConfig{}
+
+	readers, err := fetchCfg.Fetch(uri)
 	if err != nil {
 		t.Fatalf("Expected no error retrieving %s; got %s", uri, err)
 	}
@@ -30,7 +32,9 @@ func TestFetch_LocalFile(t *testing.T) {
 func TestFetch_UnsupportedScheme(t *testing.T) {
 	uri := "fakescheme://google.com"
 
-	_, err := Fetch(uri, nil, false)
+	fetchCfg := &FetchConfig{}
+
+	_, err := fetchCfg.Fetch(uri)
 	if err == nil {
 		t.Fatalf("Expected error with URI %q, got none", uri)
 	}
