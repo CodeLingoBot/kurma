@@ -35,7 +35,7 @@ var (
 func init() {
 	cli.RootCmd.AddCommand(CreateCmd)
 	// TODO: insecure option should not be true by default.
-	CreateCmd.Flags().BoolVarP(&insecureFetch, "insecure", true, "pull without verifying signature or enforcing HTTPS")
+	CreateCmd.Flags().BoolVarP(&insecureFetch, "insecure", "", true, "pull without verifying signature or enforcing HTTPS")
 	CreateCmd.Flags().StringVarP(&createName, "name", "n", "", "pod's name")
 	CreateCmd.Flags().StringVarP(&createManifestFile, "manifest", "", "", "specific manifest to use")
 	CreateCmd.Flags().StringSliceVarP(&createNetworks, "net", "", []string{}, "network to attach to the pod")
