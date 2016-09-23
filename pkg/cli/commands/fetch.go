@@ -35,9 +35,9 @@ func cmdFetch(cmd *cobra.Command, args []string) {
 
 	image, err := cli.GetClient().FetchImage(args[0], &image.FetchConfig{Insecure: insecureImageFetch})
 	if err != nil {
-		fmt.Printf("Failed to remotely fetch image %q: %s\n", req.ImageURI, err)
+		fmt.Printf("Failed to remotely fetch image %q: %s\n", args[0], err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Fetched %q (%s)\n", req.ImageURI, image.Hash)
+	fmt.Printf("Fetched %q (%s)\n", args[0], image.Hash)
 }
