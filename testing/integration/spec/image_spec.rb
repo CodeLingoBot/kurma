@@ -14,7 +14,7 @@ RSpec.describe "CLI fetch" do
   it "should remotely fetch an appc container" do
     initial_images_count = api.list_images["images"].size
 
-    cli.run!("fetch coroes.com/etcd:v2.2.5")
+    cli.run!("fetch coreos.com/etcd:v2.2.5")
 
     resp = api.list_images
     expect(resp["images"].size).to eq(initial_images_count+1)
