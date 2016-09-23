@@ -27,7 +27,7 @@ type Client interface {
 	DestroyPod(uuid string) error
 	EnterContainer(uuid string, appName string, app *schema.RunApp) (net.Conn, error)
 
-	FetchImage(imageURI string) (*Image, error)
+	FetchImage(imageURI string, fetchConfig *image.FetchConfig) (*Image, error)
 	CreateImage(reader io.Reader) (*Image, error)
 	ListImages() ([]*Image, error)
 	GetImage(hash string) (*Image, error)
