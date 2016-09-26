@@ -23,7 +23,7 @@ import (
 // A FetchConfig contains configuration for an image fetch operation.
 type FetchConfig struct {
 	// ACILabels are labels that scope the image resolution request.
-	ACILabels map[types.ACIdentifier]string `json:"aci_labels,omitempty"`
+	ACILabels map[types.ACIdentifier]string `json:"aciLabels,omitempty"`
 
 	// Insecure is an option that, if enabled, will fetch images insecurely.
 	// For instance, this will disable signature verification, and will use

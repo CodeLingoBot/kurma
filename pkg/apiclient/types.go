@@ -56,7 +56,7 @@ type ImageListResponse struct {
 }
 
 type ImageFetchRequest struct {
-	ImageURI string `json:"image_uri"`
+	ImageURI string `json:"imageUri"`
 	*image.FetchConfig
 }
 
