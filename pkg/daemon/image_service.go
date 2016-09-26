@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime"
 
 	"github.com/apcera/kurma/pkg/apiclient"
+	"github.com/appc/spec/schema/types"
 )
 
 type ImageService struct {
@@ -39,6 +41,14 @@ func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 		s.log.Errorf("Failed to unmarshal request body: %s", err)
 		http.Error(w, "Failed to parse request body", http.StatusBadRequest)
 		return
+	}
+
+	if imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("os")] == "" {
+		imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("os")] = runtime.GOOS
+	}
+
+	if imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("arch")] == "" {
+		imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("arch")] = runtime.GOARCH
 	}
 
 	hash, manifest, err := imageFetchRequest.FetchAndLoad(imageFetchRequest.ImageURI, s.options.ImageManager)
