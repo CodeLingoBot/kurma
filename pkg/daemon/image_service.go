@@ -43,6 +43,10 @@ func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if imageFetchRequest.FetchConfig.ACILabels == nil {
+		imageFetchRequest.FetchConfig.ACILabels = make(map[types.ACIdentifier]string)
+	}
+
 	if imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("os")] == "" {
 		imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("os")] = runtime.GOOS
 	}
