@@ -35,6 +35,7 @@ func (s *Server) imageCreateRequest(w http.ResponseWriter, req *http.Request) {
 func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
+	// TODO: should clients be able to specify insecure and/or labels? Or are they config-time?
 	var imageFetchRequest *apiclient.ImageFetchRequest
 
 	if err := json.NewDecoder(req.Body).Decode(&imageFetchRequest); err != nil {
@@ -55,7 +56,7 @@ func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 		imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("arch")] = runtime.GOARCH
 	}
 
-	hash, manifest, err := imageFetchRequest.FetchAndLoad(imageFetchRequest.ImageURI, s.options.ImageManager)
+	hash, manifest, err := s.options.ImageManager.FetchAndLoad(imageFetchRequest.ImageURI)
 	if err != nil {
 		s.log.Errorf("Failed create image: %s", err)
 		http.Error(w, "Failed to create image", http.StatusInternalServerError)
