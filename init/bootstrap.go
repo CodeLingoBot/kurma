@@ -22,7 +22,6 @@ import (
 	"github.com/apcera/kurma/pkg/capabilities"
 	"github.com/apcera/kurma/pkg/daemon"
 	"github.com/apcera/kurma/pkg/devices"
-	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/kurma/pkg/imagestore"
 	"github.com/apcera/kurma/pkg/networkmanager"
 	"github.com/apcera/kurma/pkg/podmanager"
@@ -581,24 +580,16 @@ func (r *runner) createImageManager() error {
 	iopts := &imagestore.Options{
 		Directory: filepath.Join(kurmaPath, string(kurmaPathImages)),
 		Log:       r.log.Clone(),
+		FetchConfig: &imagestore.FetchConfig{
+			// TODO: this should be configurable by users.
+			Insecure: true,
+		},
 	}
 	imageManager, err := imagestore.New(iopts)
 	if err != nil {
 		return fmt.Errorf("failed to create the image manager: %v", err)
 	}
 	r.imageManager = imageManager
-	return nil
-}
-
-// configureImageFetch configures options used when Kurma fetches an image
-// during initialization.
-func (r *runner) configureImageFetch() error {
-	cfg := &image.FetchConfig{
-		// TODO: this should be configurable by users.
-		Insecure: true,
-	}
-
-	r.imageFetchConfig = cfg
 	return nil
 }
 
@@ -609,7 +600,8 @@ func (r *runner) createPodManager() error {
 	if r.config.DefaultStagerImage == "" {
 		return fmt.Errorf("a defaultStagerImage setting must be specified")
 	}
-	stagerHash, _, err := r.imageFetchConfig.FetchAndLoad(r.config.DefaultStagerImage, r.imageManager)
+
+	stagerHash, _, err := r.imageManager.FetchImage(r.config.DefaultStagerImage)
 	if err != nil {
 		return fmt.Errorf("failed to fetch default stager image %q: %v", r.config.DefaultStagerImage, err)
 	}
@@ -648,7 +640,7 @@ func (r *runner) createNetworkManager() error {
 	networkDrivers := make([]*backend.NetworkDriver, 0, len(r.config.PodNetworks))
 
 	for _, podNet := range r.config.PodNetworks {
-		hash, _, err := r.imageFetchConfig.FetchAndLoad(podNet.ACI, r.imageManager)
+		hash, _, err := r.imageManager.FetchImage(podNet.ACI)
 		if err != nil {
 			r.log.Warnf("Failed to load image for network %q: %v", podNet.Name, err)
 			continue
@@ -854,8 +846,7 @@ func (r *runner) setupDiscoveryProxy() error {
 // them.
 func (r *runner) prefetchImages() error {
 	for _, aci := range r.config.PrefetchImages {
-		// TODO: configurable `insecure` option
-		_, _, err := r.imageFetchConfig.FetchAndLoad(aci, r.imageManager)
+		_, _, er := r.imageManager.FetchImage(aci)
 		if err != nil {
 			r.log.Warnf("Failed to fetch image %q: %v", aci, err)
 			continue
