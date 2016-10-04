@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/apcera/kurma/pkg/backend"
-	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/kurma/pkg/networkmanager/types"
 	"github.com/apcera/logray"
 	"github.com/appc/spec/schema"
@@ -105,12 +104,8 @@ func (ip *InitialPodManifest) Process(imageManager backend.ImageManager) (string
 
 	hash, imageManifest := imageManager.FindImage(ip.image, "")
 	if imageManifest == nil {
-		imageFetchCfg := &image.FetchConfig{
-			Insecure: true,
-		}
-
 		var err error
-		hash, imageManifest, err = imageFetchCfg.FetchAndLoad(ip.image, imageManager)
+		hash, imageManifest, err = imageManager.FetchImage(ip.image)
 		if err != nil {
 			return ip.name, nil, fmt.Errorf("failed to get a retrieve image %q: %v", ip.image, err)
 		}
@@ -204,8 +199,6 @@ func bootstrap(r setupRunner) error {
 	if err != nil {
 		return err
 	}
-
-	r.configureImageFetch()
 
 	err = r.createImageManager()
 	if err != nil {
