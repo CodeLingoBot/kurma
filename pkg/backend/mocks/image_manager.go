@@ -12,6 +12,7 @@ import (
 type ImageManager struct {
 	RescanFunc       func() error
 	CreateImageFunc  func(reader io.Reader) (string, *schema.ImageManifest, error)
+	FetchImageFunc   func(imageURI string) (string, *schema.ImageManifest, error)
 	ListImagesFunc   func() map[string]*schema.ImageManifest
 	GetImageFunc     func(hash string) *schema.ImageManifest
 	FindImageFunc    func(name, version string) (string, *schema.ImageManifest)
@@ -26,6 +27,10 @@ func (im *ImageManager) Rescan() error {
 
 func (im *ImageManager) CreateImage(reader io.Reader) (string, *schema.ImageManifest, error) {
 	return im.CreateImageFunc(reader)
+}
+
+func (im *ImageManager) FetchImage(imageURI string) (string, *schema.ImageManifest, error) {
+	return im.FetchImageFunc(imageURI)
 }
 
 func (im *ImageManager) ListImages() map[string]*schema.ImageManifest {

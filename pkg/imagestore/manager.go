@@ -4,6 +4,7 @@ package imagestore
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -25,6 +26,7 @@ import (
 type Options struct {
 	Directory string
 	Log       *logray.Logger
+	*FetchConfig
 }
 
 // Manager handles the management of the containers running and available on the
@@ -136,6 +138,22 @@ func (m *Manager) CreateImage(reader io.Reader) (string, *schema.ImageManifest, 
 	}
 	successful = true
 	return hash, manifest, nil
+}
+
+// FetchImage retrieves an image from a remote URI and loads it into the image
+// store. It returns the sha512 hash and the appc image manifest.
+func (m *Manager) FetchImage(imageURI string) (string, *schema.ImageManifest, error) {
+	layers, err := m.fetch(imageURI)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(layers) == 0 {
+		return "", nil, errors.New("no image layers retrieved")
+	}
+
+	// TODO: handle multi-layer images
+	layer := layers[0]
+	return m.CreateImage(layer)
 }
 
 // ListImages returns a map of the image hash to image manifest for all images

@@ -60,6 +60,10 @@ type ImageManager interface {
 	// from within the image, or an error on any failures.
 	CreateImage(reader io.Reader) (string, *schema.ImageManifest, error)
 
+	// FetchImage retrieves an image from a remote URI and loads it into the image
+	// store. It returns the sha512 hash and the appc image manifest.
+	FetchImage(imageURI string) (string, *schema.ImageManifest, error)
+
 	// ListImages returns a map of the image hash to image manifest for all images
 	// that are available.
 	ListImages() map[string]*schema.ImageManifest

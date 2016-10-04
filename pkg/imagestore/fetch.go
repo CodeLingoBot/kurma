@@ -1,6 +1,6 @@
 // Copyright 2015-2016 Apcera Inc. All rights reserved.
 
-package image
+package imagestore
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/apcera/kurma/pkg/backend"
 	"github.com/apcera/kurma/pkg/remote"
 	"github.com/apcera/kurma/pkg/remote/aci"
 	"github.com/apcera/kurma/pkg/remote/docker"
@@ -16,7 +15,6 @@ import (
 
 	"github.com/apcera/util/tempfile"
 
-	"github.com/appc/spec/schema"
 	"github.com/appc/spec/schema/types"
 )
 
@@ -31,28 +29,11 @@ type FetchConfig struct {
 	Insecure bool `json:"insecure"`
 }
 
-// FetchAndLoad retrieves a container image and loads it for use within kurmad.
-func (f *FetchConfig) FetchAndLoad(imageURI string, imageManager backend.ImageManager) (
-	string, *schema.ImageManifest, error) {
-
-	layers, err := f.Fetch(imageURI)
-	if err != nil {
-		return "", nil, err
-	}
-	for _, l := range layers {
-		defer l.Close()
-	}
-
-	hash, manifest, err := loadFromFile(layers[0], imageManager)
-	if err != nil {
-		return "", nil, err
-	}
-	return hash, manifest, nil
-}
-
-// Fetch retrieves a container image. Images may be sourced from the local
+// fetch retrieves a container image. Images may be sourced from the local
 // machine, or may be retrieved from a remote server.
-func (f *FetchConfig) Fetch(imageURI string) ([]tempfile.ReadSeekCloser, error) {
+func (m *Manager) fetch(imageURI string) ([]tempfile.ReadSeekCloser, error) {
+	cfg := m.Options.FetchConfig
+
 	u, err := url.Parse(imageURI)
 	if err != nil {
 		return nil, err
@@ -79,9 +60,9 @@ func (f *FetchConfig) Fetch(imageURI string) ([]tempfile.ReadSeekCloser, error) 
 	case "http", "https":
 		puller = http.New()
 	case "docker":
-		puller = docker.New(f.Insecure)
+		puller = docker.New(cfg.Insecure)
 	case "aci", "":
-		puller = aci.New(f.Insecure, f.ACILabels)
+		puller = aci.New(cfg.Insecure, cfg.ACILabels)
 	default:
 		return nil, fmt.Errorf("%q scheme not supported", u.Scheme)
 	}
@@ -101,13 +82,4 @@ func (f *FetchConfig) Fetch(imageURI string) ([]tempfile.ReadSeekCloser, error) 
 	}
 
 	return wrappedLayers, nil
-}
-
-// loadFromFile loads a file as an image for use within Kurma.
-func loadFromFile(f tempfile.ReadSeekCloser, imageManager backend.ImageManager) (string, *schema.ImageManifest, error) {
-	hash, manifest, err := imageManager.CreateImage(f)
-	if err != nil {
-		return "", nil, err
-	}
-	return hash, manifest, nil
 }
