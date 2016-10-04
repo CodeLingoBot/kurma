@@ -62,7 +62,7 @@ func createPodFromFile(file string) (*apiclient.Image, error) {
 				ACILabels: labels,
 			}
 
-			layers, err := cfg.Fetch(file)
+			layers, err := image.Fetch(file, cfg)
 			if err != nil {
 				fmt.Printf("Failed to retrieve the container image: %v\n", err)
 				os.Exit(1)
