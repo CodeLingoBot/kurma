@@ -144,7 +144,7 @@ func (m *Manager) CreateImage(reader io.Reader) (string, *schema.ImageManifest, 
 // FetchImage retrieves an image from a remote URI and loads it into the image
 // store. It returns the sha512 hash and the appc image manifest.
 func (m *Manager) FetchImage(imageURI string) (string, *schema.ImageManifest, error) {
-	layers, err := image.Fetch(imageURI, m.FetchConfig)
+	layers, err := image.Fetch(imageURI, m.Options.FetchConfig)
 	if err != nil {
 		return "", nil, err
 	}
