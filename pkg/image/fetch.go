@@ -1,6 +1,6 @@
 // Copyright 2015-2016 Apcera Inc. All rights reserved.
 
-package imagestore
+package image
 
 import (
 	"fmt"
@@ -29,11 +29,9 @@ type FetchConfig struct {
 	Insecure bool `json:"insecure"`
 }
 
-// fetch retrieves a container image. Images may be sourced from the local
+// Fetch retrieves a container image. Images may be sourced from the local
 // machine, or may be retrieved from a remote server.
-func (m *Manager) fetch(imageURI string) ([]tempfile.ReadSeekCloser, error) {
-	cfg := m.Options.FetchConfig
-
+func Fetch(imageURI string, cfg *FetchConfiug) ([]tempfile.ReadSeekCloser, error) {
 	u, err := url.Parse(imageURI)
 	if err != nil {
 		return nil, err

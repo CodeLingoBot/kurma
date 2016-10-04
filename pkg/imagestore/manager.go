@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/apcera/kurma/pkg/backend"
+	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/logray"
 	"github.com/apcera/util/hashutil"
 	"github.com/apcera/util/tarhelper"
@@ -24,9 +25,9 @@ import (
 // Options contains settings that are used by the Image Manager and
 // Containers running on the host.
 type Options struct {
-	Directory string
-	Log       *logray.Logger
-	*FetchConfig
+	Directory   string
+	Log         *logray.Logger
+	FetchConfig *image.FetchConfig
 }
 
 // Manager handles the management of the containers running and available on the
@@ -143,7 +144,7 @@ func (m *Manager) CreateImage(reader io.Reader) (string, *schema.ImageManifest, 
 // FetchImage retrieves an image from a remote URI and loads it into the image
 // store. It returns the sha512 hash and the appc image manifest.
 func (m *Manager) FetchImage(imageURI string) (string, *schema.ImageManifest, error) {
-	layers, err := m.fetch(imageURI)
+	layers, err := image.Fetch(imageURI, m.FetchConfig)
 	if err != nil {
 		return "", nil, err
 	}

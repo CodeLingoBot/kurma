@@ -22,6 +22,7 @@ import (
 	"github.com/apcera/kurma/pkg/capabilities"
 	"github.com/apcera/kurma/pkg/daemon"
 	"github.com/apcera/kurma/pkg/devices"
+	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/kurma/pkg/imagestore"
 	"github.com/apcera/kurma/pkg/networkmanager"
 	"github.com/apcera/kurma/pkg/podmanager"
@@ -580,7 +581,7 @@ func (r *runner) createImageManager() error {
 	iopts := &imagestore.Options{
 		Directory: filepath.Join(kurmaPath, string(kurmaPathImages)),
 		Log:       r.log.Clone(),
-		FetchConfig: &imagestore.FetchConfig{
+		FetchConfig: &image.FetchConfig{
 			// TODO: this should be configurable by users.
 			Insecure: true,
 		},

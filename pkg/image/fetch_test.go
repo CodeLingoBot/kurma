@@ -1,6 +1,6 @@
 // Copyright 2015-2016 Apcera Inc. All rights reserved.
 
-package imagestore
+package image
 
 import (
 	"io/ioutil"
@@ -17,13 +17,7 @@ func TestFetch_LocalFile(t *testing.T) {
 
 	uri := "file://" + f.Name()
 
-	m := &Manager{
-		Options: &Options{
-			FetchConfig: &FetchConfig{},
-		},
-	}
-
-	readers, err := m.fetch(uri)
+	readers, err := Fetch(uri, &FetchConfig{})
 	if err != nil {
 		t.Fatalf("Expected no error retrieving %s; got %s", uri, err)
 	}
@@ -36,13 +30,7 @@ func TestFetch_LocalFile(t *testing.T) {
 func TestFetch_UnsupportedScheme(t *testing.T) {
 	uri := "fakescheme://google.com"
 
-	m := &Manager{
-		Options: &Options{
-			FetchConfig: &FetchConfig{},
-		},
-	}
-
-	_, err := m.fetch(uri)
+	_, err := Fetch(uri, &FetchConfig{})
 	if err == nil {
 		t.Fatalf("Expected error with URI %q, got none", uri)
 	}
