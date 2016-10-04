@@ -31,7 +31,7 @@ type FetchConfig struct {
 
 // Fetch retrieves a container image. Images may be sourced from the local
 // machine, or may be retrieved from a remote server.
-func Fetch(imageURI string, cfg *FetchConfiug) ([]tempfile.ReadSeekCloser, error) {
+func Fetch(imageURI string, cfg *FetchConfig) ([]tempfile.ReadSeekCloser, error) {
 	u, err := url.Parse(imageURI)
 	if err != nil {
 		return nil, err

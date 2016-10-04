@@ -56,7 +56,7 @@ func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 		imageFetchRequest.FetchConfig.ACILabels[types.ACIdentifier("arch")] = runtime.GOARCH
 	}
 
-	hash, manifest, err := s.options.ImageManager.FetchAndLoad(imageFetchRequest.ImageURI)
+	hash, manifest, err := s.options.ImageManager.FetchImage(imageFetchRequest.ImageURI)
 	if err != nil {
 		s.log.Errorf("Failed create image: %s", err)
 		http.Error(w, "Failed to create image", http.StatusInternalServerError)
