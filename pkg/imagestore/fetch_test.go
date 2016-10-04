@@ -23,7 +23,7 @@ func TestFetch_LocalFile(t *testing.T) {
 		},
 	}
 
-	readers, err := fetch(uri, m)
+	readers, err := m.fetch(uri)
 	if err != nil {
 		t.Fatalf("Expected no error retrieving %s; got %s", uri, err)
 	}
@@ -42,7 +42,7 @@ func TestFetch_UnsupportedScheme(t *testing.T) {
 		},
 	}
 
-	_, err := fetch(uri, m)
+	_, err := m.fetch(uri)
 	if err == nil {
 		t.Fatalf("Expected error with URI %q, got none", uri)
 	}
