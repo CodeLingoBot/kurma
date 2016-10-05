@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/apcera/kurma/pkg/image"
 	"github.com/apcera/kurma/schema"
 	"github.com/apcera/util/wsconn"
 	"github.com/gorilla/rpc/v2/json2"
@@ -27,7 +26,7 @@ type Client interface {
 	DestroyPod(uuid string) error
 	EnterContainer(uuid string, appName string, app *schema.RunApp) (net.Conn, error)
 
-	FetchImage(imageURI string, fetchConfig *image.FetchConfig) (*Image, error)
+	FetchImage(imageURI string) (*Image, error)
 	CreateImage(reader io.Reader) (*Image, error)
 	ListImages() ([]*Image, error)
 	GetImage(hash string) (*Image, error)
