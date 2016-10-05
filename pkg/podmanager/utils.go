@@ -91,26 +91,14 @@ func (pod *Pod) generateContainerConfig() (*configs.Config, error) {
 		})
 	}
 
-	// Add in the volume mounts
-	for _, volume := range pod.manifest.Pod.Volumes {
-		hostPath, err := pod.manager.getVolumePath(volume.Name.String())
+	// Call to the configured volume drivers to return any relevant mounts that
+	// should be applied onto the pod.
+	for _, driver := range pod.manager.Options.VolumeDrivers {
+		mounts, err := driver.Provision(pod)
 		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve volume for %q: %v", volume.Name, err)
+			return nil, fmt.Errorf("failed to provision volumes of kind %q: %v", driver.Kind(), err)
 		}
-		dst := filepath.Join("/volumes", volume.Name.String())
-
-		m := &configs.Mount{
-			Source:      hostPath,
-			Destination: dst,
-			Device:      "bind",
-			Flags:       syscall.MS_BIND,
-		}
-
-		if volume.ReadOnly != nil && *volume.ReadOnly {
-			m.Flags |= syscall.MS_RDONLY
-		}
-
-		config.Mounts = append(config.Mounts, m)
+		config.Mounts = append(config.Mounts, mounts...)
 	}
 
 	// apply any raw mounts that aren't relevant to the pod

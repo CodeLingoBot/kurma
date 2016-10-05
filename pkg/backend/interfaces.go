@@ -249,3 +249,30 @@ type NetworkManager interface {
 	// deallocation or cleanup processes that are necessary.
 	Deprovision(pod Pod) error
 }
+
+// VolumeDriver is used to abstract the handle the provisioning and management
+// of volume mounts for pods associaeted with an individual "kind" of volume,
+// such as "empty", "host", or other types in the future.
+type VolumeDriver interface {
+	// Kind returns the string name of the kind of volumes the driver handles.
+	Kind() string
+
+	// SetLog sets the logger to be used by the driver.
+	SetLog(log *logray.Logger)
+
+	// Validate is used to ensure the volumes on the specified pod of the "kind"
+	// associated with the driver are valid in their configuration. The driver
+	// should only validate the kind that it handles, and ignore the other volumes
+	// on the pod.
+	Validate(pod Pod) error
+
+	// Provision handles generating the libcontainer mount configs for the
+	// specified pod and the volumes of the "kind" the driver is responsible. If
+	// there are no mounts of the matching kind, Provision should return an empty
+	// array with no errors.
+	Provision(pod Pod) ([]*configs.Mount, error)
+
+	// Deprovision handles any deprovisioning of a volume mount that may be
+	// necessary for the specific kind of volume.
+	Deprovision(pod Pod) error
+}

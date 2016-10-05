@@ -208,6 +208,11 @@ func bootstrap(r setupRunner) error {
 
 	r.prefetchImages()
 
+	err = r.createVolumeDrivers()
+	if err != nil {
+		return err
+	}
+
 	err = r.createPodManager()
 	if err != nil {
 		return err

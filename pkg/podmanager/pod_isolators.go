@@ -106,26 +106,6 @@ func (pod *Pod) setupHostPrivilegeIsolator(runtimeApp *schema.RuntimeApp) {
 			Flags:       syscall.MS_BIND,
 		},
 	)
-
-	// Add volumes, if a volume directory is configured
-	if pod.manager.Options.VolumeDirectory != "" {
-		name := types.ACName(fmt.Sprintf("%s-host-volumes", runtimeApp.Name.String()))
-		runtimeApp.Mounts = append(runtimeApp.Mounts, schema.Mount{
-			Volume: name,
-			Path:   "/host/volumes",
-		})
-		pod.options.RawVolumes = append(pod.options.RawVolumes, types.Volume{
-			Name:   name,
-			Kind:   "host",
-			Source: pod.manager.Options.VolumeDirectory,
-		})
-		pod.options.StagerMounts = append(pod.options.StagerMounts, &configs.Mount{
-			Source:      pod.manager.Options.VolumeDirectory,
-			Destination: filepath.Join("/volumes", name.String()),
-			Device:      "bind",
-			Flags:       syscall.MS_BIND,
-		})
-	}
 }
 
 // setupHostApiAccessIsolator configures the container for API access over

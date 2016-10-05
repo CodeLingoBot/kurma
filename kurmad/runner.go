@@ -31,6 +31,7 @@ type setupRunner interface {
 	createDirectories() error
 	createImageManager() error
 	prefetchImages()
+	createVolumeDrivers() error
 	createPodManager() error
 	createNetworkManager()
 	startDaemon() error
@@ -46,6 +47,7 @@ type runner struct {
 	podManager     backend.PodManager
 	imageManager   backend.ImageManager
 	networkManager backend.NetworkManager
+	volumeDrivers  []backend.VolumeDriver
 }
 
 // setupSignalHandling sets up the callbacks for signals to cleanly shutdown.
@@ -176,6 +178,12 @@ func (r *runner) createImageManager() error {
 	return nil
 }
 
+// createVolumeDrivers handles the creation of the volume drivers that will be
+// used by the pod manager.
+func (r *runner) createVolumeDrivers() error {
+	return nil
+}
+
 // createPodManager creates the pod manager to allow pods to be
 // launched.
 func (r *runner) createPodManager() error {
@@ -191,7 +199,7 @@ func (r *runner) createPodManager() error {
 	mopts := &podmanager.Options{
 		PodDirectory:          r.config.PodsDirectory,
 		LibcontainerDirectory: filepath.Join(r.config.PodsDirectory, "libcontainer"),
-		VolumeDirectory:       r.config.VolumesDirectory,
+		VolumeDrivers:         r.volumeDrivers,
 		ParentCgroupName:      r.config.ParentCgroupName,
 		DefaultStagerHash:     stagerHash,
 		Log:                   r.log.Clone(),

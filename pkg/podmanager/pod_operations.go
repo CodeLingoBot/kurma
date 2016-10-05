@@ -43,6 +43,7 @@ var (
 		(*Pod).stoppingSignal,
 		(*Pod).stoppingNetwork,
 		(*Pod).stoppingStager,
+		(*Pod).stoppingVolumes,
 		(*Pod).stoppingDirectories,
 		(*Pod).stoppingrRemoveFromParent,
 	}
@@ -448,6 +449,19 @@ func (pod *Pod) stoppingStager() error {
 	pod.mutex.Unlock()
 
 	pod.log.Trace("Done tearing down stager container.")
+	return nil
+}
+
+// stoppingVolumes handles any deprovisioning steps that may be necessary for
+// the volumes attached to a Pod.
+func (pod *Pod) stoppingVolumes() error {
+	// Call to the configured volume drivers handle any deprovision steps they may
+	// have.
+	for _, driver := range pod.manager.Options.VolumeDrivers {
+		if err := driver.Deprovision(pod); err != nil {
+			pod.log.Warnf("Failed to deprovision volumes of kind %q: %v", driver.Kind(), err)
+		}
+	}
 	return nil
 }
 

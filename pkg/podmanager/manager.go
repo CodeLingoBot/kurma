@@ -4,8 +4,6 @@ package podmanager
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/apcera/kurma/pkg/apiclient"
@@ -13,7 +11,6 @@ import (
 	"github.com/apcera/logray"
 	"github.com/apcera/util/uuid"
 	"github.com/appc/spec/schema"
-	"github.com/appc/spec/schema/types"
 	"github.com/opencontainers/runc/libcontainer"
 
 	kschema "github.com/apcera/kurma/schema"
@@ -25,9 +22,9 @@ type Options struct {
 	ParentCgroupName      string
 	PodDirectory          string
 	LibcontainerDirectory string
-	VolumeDirectory       string
 	DefaultStagerHash     string
 	RequiredNamespaces    []string
+	VolumeDrivers         []backend.VolumeDriver
 	Log                   *logray.Logger
 	FactoryFunc           func(root string) (libcontainer.Factory, error)
 	Debug                 bool
@@ -268,22 +265,4 @@ func (manager *Manager) Pod(uuid string) backend.Pod {
 	manager.podsLock.RLock()
 	defer manager.podsLock.RUnlock()
 	return manager.pods[uuid]
-}
-
-// getVolumePath will get the absolute path on the host to the named volume. It
-// will also ensure that the volume name exists within the volumes directory.
-func (manager *Manager) getVolumePath(name string) (string, error) {
-	if !types.ValidACName.MatchString(name) {
-		return "", fmt.Errorf("invalid characters present in volume name")
-	}
-
-	volumePath := filepath.Join(manager.Options.VolumeDirectory, name)
-
-	manager.volumeLock.Lock()
-	defer manager.volumeLock.Unlock()
-
-	if err := os.Mkdir(volumePath, os.FileMode(0755)); err != nil && !os.IsExist(err) {
-		return "", err
-	}
-	return volumePath, nil
 }
