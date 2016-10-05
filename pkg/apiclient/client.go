@@ -176,7 +176,7 @@ func (c *client) EnterContainer(uuid string, appName string, app *schema.RunApp)
 
 // FetchImage instructs the remote Kurma daemon to fetch and load the requested
 // image.
-func (c *client) FetchImage(imageURI string, fetchCfg *image.FetchConfig) (*Image, error) {
+func (c *client) FetchImage(imageURI string) (*Image, error) {
 	u, err := url.Parse(c.baseUrl)
 	if err != nil {
 		return nil, err
@@ -184,8 +184,7 @@ func (c *client) FetchImage(imageURI string, fetchCfg *image.FetchConfig) (*Imag
 	u.Path = "/images/fetch"
 
 	imageFetchRequest := &ImageFetchRequest{
-		ImageURI:    imageURI,
-		FetchConfig: fetchCfg,
+		ImageURI: imageURI,
 	}
 
 	fetchReqBytes, err := json.Marshal(imageFetchRequest)

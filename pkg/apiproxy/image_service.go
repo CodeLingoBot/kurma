@@ -40,7 +40,7 @@ func (s *Server) imageFetchRequest(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	image, err := s.client.FetchImage(imageFetchRequest.ImageURI, imageFetchRequest.FetchConfig)
+	image, err := s.client.FetchImage(imageFetchRequest.ImageURI)
 	if err != nil {
 		s.log.Errorf("Failed to fetch image %q: %s", imageFetchRequest.ImageURI, err)
 		http.Error(w, "Failed to fetch image", http.StatusInternalServerError)

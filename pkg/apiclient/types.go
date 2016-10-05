@@ -6,7 +6,6 @@ import (
 	"github.com/appc/spec/schema"
 	"github.com/appc/spec/schema/types"
 
-	"github.com/apcera/kurma/pkg/image"
 	ntypes "github.com/apcera/kurma/pkg/networkmanager/types"
 	kschema "github.com/apcera/kurma/schema"
 )
@@ -57,7 +56,6 @@ type ImageListResponse struct {
 
 type ImageFetchRequest struct {
 	ImageURI string `json:"imageUri"`
-	*image.FetchConfig
 }
 
 type ImageResponse struct {
