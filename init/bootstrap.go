@@ -847,7 +847,7 @@ func (r *runner) setupDiscoveryProxy() error {
 // them.
 func (r *runner) prefetchImages() error {
 	for _, aci := range r.config.PrefetchImages {
-		_, _, er := r.imageManager.FetchImage(aci)
+		_, _, err := r.imageManager.FetchImage(aci)
 		if err != nil {
 			r.log.Warnf("Failed to fetch image %q: %v", aci, err)
 			continue
