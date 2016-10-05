@@ -3,7 +3,9 @@ require 'spec_helper'
 
 RSpec.describe "CLI fetch" do
   it "should remotely fetch a Docker container" do
-    initial_images_count = api.list_images["images"].size
+    images = api.list_images["images"]
+    puts images
+    initial_images_count = images.size
 
     cli.run!("fetch docker://nats")
 
@@ -12,7 +14,9 @@ RSpec.describe "CLI fetch" do
   end
 
   it "should remotely fetch an appc container" do
-    initial_images_count = api.list_images["images"].size
+    images = api.list_images["images"]
+    puts images
+    initial_images_count = images.size
 
     cli.run!("fetch coreos.com/etcd:v2.2.5")
 
